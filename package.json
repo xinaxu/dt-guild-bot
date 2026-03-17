@@ -1,0 +1,30 @@
+{
+  "name": "dt-guild-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for Dragon Traveller guild auction management",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "deploy-commands": "tsx src/deploy-commands.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1010.0",
+    "@aws-sdk/lib-dynamodb": "^3.1010.0",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "@types/node": "^22.13.10",
+    "eslint": "^9.22.0",
+    "nodemon": "^3.1.9",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.26.1"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}

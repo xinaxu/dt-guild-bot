@@ -1,0 +1,120 @@
+[
+    {
+        "category": "Dragon / Whelp Shards",
+        "items": {
+            "Fire Whelp's Dragon Soul": "<:whelp_shards_elemental:1483216282177376439>",
+            "Emerald Whelp's Dragon Soul": "<:whelp_shards_wild:1483216430823641251>",
+            "Butterfly Whelp's Dragon Soul": "<:whelp_shards_arcane:1483216613015556116>",
+            "Light Whelp's Dragon Soul": "<:whelp_shards_sanctum:1483216505067016304>",
+            "Shadow Whelp's Dragon Soul": "<:whelp_shards_otherworld:1483216550533136435>",
+            "Dark Whelp's Dragon Soul": "<:whelp_shards_illusion:1483216683123474632>",
+            "Red Dragon Soul": "<:dragon_soul_elemental:1483216939600969840>",
+            "Green Dragon Soul": "<:dragon_soul_wild:1483216827764179175>",
+            "Elven Dragon Soul": "<:dragon_soul_arcane:1483217043833749695>",
+            "Golden Dragon Soul": "<:dragon_soul_santum:1483217082266025994>",
+            "Ghost Dragon Soul": "<:dragon_soul_otherworld:1483217167154675773>",
+            "Black Dragon Soul": "<:dragon_soul_illusion:1483217202906927145>"
+        }
+    },
+    {
+        "category": "Evo Stone",
+        "items": {
+            "Elemental Intermediate Evo Stone": "<:evo_elemental:1483217824573821019>",
+            "Wild Intermediate Evo Stone": "<:evo_wild:1483217867808968795>",
+            "Arcane Intermediate Evo Stone": "<:evo_arcane:1483217896405467298>",
+            "Sanctum Intermediate Evo Stone": "<:evo_sanctum:1483217927032406209>",
+            "Otherworld Intermediate Evo Stone": "<:evo_otherworld:1483218009786159187>",
+            "Illusion Intermediate Evo Stone": "<:evo_illusion:1483218068267073656>",
+            "Elemental Prime Evo Stone": "<:prime_evo_elemental:1483217388416798870>",
+            "Wild Prime Evo Stone": "<:prime_evo_wild:1483217516330221668>",
+            "Arcane Prime Evo Stone": "<:prime_evo_arcane:1483217282384531526>",
+            "Sanctum Prime Evo Stone": "<:prime_evo_sanctum:1483217332749860967>",
+            "Otherworld Prime Evo Stone": "<:prime_evo_otherworld:1483217421883146461>",
+            "Illusion Prime Evo Stone": "<:prime_evo_illusion:1483217460131004536>"
+        }
+    },
+    {
+        "category": "SSR-Ex / Divine Crystal",
+        "items": {
+            "Poseidon Shards": "<:poseidon:1483223749854757045>",
+            "Ares Shards": "<:ares:1483223788752601179>",
+            "Athena Shards": "<:athena:1483223815801536595>",
+            "Hades Shards": "<:hades:1483223850484371547>",
+            "Divine Crystal": "<:divine_crystal:1483216185633013840>"
+        }
+    },
+    {
+        "category": "SSR Luminary",
+        "items": {
+            "King of Beasts": "<:king_of_beast:1483218220654526598>",
+            "Hell Hound": "<:hell_hound:1483218354482319571>",
+            "Demon Hunter": "<:demon_hunter:1483218477451051111>",
+            "King of Wild Hunt": "<:king_wild_hunt:1483219324956311723>",
+            "Hero Mentor": "<:hero_mentor:1483219491059007540>",
+            "Irongut Tyrant": "<:irongut_tyrant:1483220083990990909>",
+            "Gorgon": "<:gorgon:1483220349662531624>",
+            "Shadow Elemental": "<:shadow_elemental:1483220785148465353>",
+            "Arcane Lord": "<:arcane_lord:1483221137948414034>",
+            "Knight of the Lake": "<:knight_lake:1483221300515307690>",
+            "Slime King": "<:slime_king:1483222028948340779>",
+            "Ancient Golem": "<:ancient_golem:1483222272973078568>",
+            "Heroic Warrior": "<:heroic_warrior:1483222470210097252>",
+            "Labyrinth Overlord": "<:labyrinth_overlord:1483223009488535672>",
+            "Queen of Egypt": "<:queen_of_egypt:1483223487198924821>"
+        }
+    },
+    {
+        "category": "SSR Luminary Shards",
+        "items": {
+            "King of Beasts Shards": "<:king_of_beast_shards:1483218256977461379>",
+            "Hell Hound Shards": "<:hell_hound_shards:1483218386602426518>",
+            "Demon Hunter Shards": "<:demon_hunter_shards:1483218504281882625>",
+            "King of Wild Hunt Shards": "<:king_wild_hunt_shards:1483219364739027045>",
+            "Hero Mentor Shards": "<:hero_mentor_shards:1483219516467974424>",
+            "Irongut Tyrant Shards": "<:irongut_tyrant_shards:1483220111870394479>",
+            "Gorgon Shards": "<:gorgon_shards:1483220404826013897>",
+            "Shadow Elemental Shards": "<:shadow_elemental_shards:1483220816710734049>",
+            "Arcane Lord Shards": "<:arcane_lord_shards:1483221172467531987>",
+            "Knight of the Lake Shards": "<:knight_lake_shards:1483221338859507903>",
+            "Slime King Shards": "<:slime_king_shards:1483222076629323847>",
+            "Ancient Golem Shards": "<:ancient_golem_shards:1483222342808244387>",
+            "Heroic Warrior Shards": "<:heroic_warrior_shards:1483222552456200312>",
+            "Labyrinth Overlord Shards": "<:labyrinth_overlord_shards:1483223044154589226>",
+            "Queen of Egypt Shards": "<:queen_of_egypt_shards:1483223539283787937>"
+        }
+    },
+    {
+        "category": "SSR+ Luminary",
+        "items": {
+            "World Serpent": "<:world_serpent:1483218299356582041>",
+            "Bloodthirster Sword": "<:bloodthirster_sword:1483218410509697284>",
+            "Death Knight": "<:death_knight:1483218533138563319>",
+            "Fallen Warborn Goddess": "<:fallen_goddess:1483218770360139881>",
+            "Demon Overlord": "<:demon_overlord:1483219160535138364>",
+            "Holy Bishop": "<:holy_bishop:1483219657702768711>",
+            "Demilich": "<:demilich:1483220214291103877>",
+            "Judge of the Underworld": "<:judge_underworld:1483220496873951232>",
+            "Warborn Goddess": "<:warborn_goddess:1483220915532599470>",
+            "Eternal King": "<:eternal_king:1483221491880300585>",
+            "Wishing Genie": "<:wishing_genie:1483223182331871293>",
+            "Twin Raven": "<:twin_raven:1483223366424072344>"
+        }
+    },
+    {
+        "category": "SSR+ Luminary Shards",
+        "items": {
+            "World Serpent Shards": "<:world_serpent_shards:1483218327286448270>",
+            "Bloodthirster Sword Shards": "<:bloodthirster_sword_shards:1483218445951570101>",
+            "Death Knight Shards": "<:death_knight_shards:1483218577179017322>",
+            "Fallen Warborn Goddess Shards": "<:fallen_goddess_shards:1483218799720140921>",
+            "Demon Overlord Shards": "<:demon_overlord_shards:1483219191032189010>",
+            "Holy Bishop Shards": "<:holy_bishop_shards:1483219683766173832>",
+            "Demilich Shards": "<:demilich_shards:1483220249330319500>",
+            "Judge of the Underworld Shards": "<:judge_underworld_shards:1483220530604806275>",
+            "Warborn Goddess Shards": "<:warborn_goddess_shards:1483220959543427112>",
+            "Eternal King Shards": "<:eternal_king_shards:1483221533080948909>",
+            "Wishing Genie Shards": "<:wishing_genie_shards:1483223207518404689>",
+            "Twin Raven Shards": "<:twin_raven_shards:1483223397776359575>"
+        }
+    }
+]
