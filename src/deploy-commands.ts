@@ -46,30 +46,24 @@ const rest = new REST({ version: '10' }).setToken(config.botToken);
 
 async function deploy(): Promise<void> {
   try {
-    console.log(`Registering ${commands.length} global slash command(s)...`);
+    const guildId = process.argv[2] ?? process.env.GUILD_ID;
 
-    // NOTE: To clear guild commands that shadow global ones, you must pass the guild ID as an argument:
-    // yarn deploy-commands <guild_id>
-    const guildIdToClear = process.argv[2];
-    if (guildIdToClear) {
-      console.log(`Clearing existing guild commands for guild: ${guildIdToClear}`);
-      try {
-        await rest.put(
-          Routes.applicationGuildCommands(config.clientId, guildIdToClear),
-          { body: [] },
-        );
-        console.log(`✅ Cleared guild commands for ${guildIdToClear}`);
-      } catch (err) {
-        console.warn(`⚠️ Failed to clear guild commands (might not exist):`, err);
-      }
+    if (guildId) {
+      console.log(`🚀 Deploying commands to guild: ${guildId} (Instant propagation)`);
+      await rest.put(
+        Routes.applicationGuildCommands(config.clientId, guildId),
+        { body: commands },
+      );
+      console.log(`✅ Guild commands registered for ${guildId}`);
+    } else {
+      console.log('🌍 Registering global slash commands...');
+      await rest.put(
+        Routes.applicationCommands(config.clientId),
+        { body: commands },
+      );
+      console.log('✅ Global slash commands registered successfully.');
+      console.log('💡 Note: Global commands can take up to an hour to propagate.');
     }
-
-    await rest.put(
-      Routes.applicationCommands(config.clientId),
-      { body: commands },
-    );
-
-    console.log('✅ Global slash commands registered successfully. (Note: Discord can take up to an hour to propagate global commands initially, though usually much faster)');
   } catch (error) {
     console.error('Failed to register commands:', error);
     process.exit(1);
