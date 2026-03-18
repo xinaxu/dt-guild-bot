@@ -13,4 +13,5 @@ RUN corepack enable && corepack prepare yarn@1.22.22 --activate
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile --production
 COPY --from=builder /app/dist ./dist
+COPY src/items.json ./src/items.json
 CMD ["sh", "-c", "node dist/deploy-commands.js && node dist/index.js"]
