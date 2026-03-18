@@ -17,7 +17,7 @@ export async function initRegistry(): Promise<void> {
   if (registryInitialized) return;
 
   // Scan for all CONFIG entries — we expect very few guilds
-  const result = await dynamo.send(new QueryCommand({
+  await dynamo.send(new QueryCommand({
     TableName: TABLE,
     KeyConditionExpression: 'begins_with(PK, :prefix) AND SK = :sk',
     // Can't do begins_with on PK in a Query unless using a GSI.

@@ -1,4 +1,4 @@
-import { PutItemCommand, QueryCommand, BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
+import { PutItemCommand, QueryCommand, BatchWriteItemCommand, type AttributeValue } from '@aws-sdk/client-dynamodb';
 import { dynamo, TABLE } from './dynamo.js';
 import type { SubscriptionInfo } from '../utils/embeds.js';
 
@@ -237,7 +237,7 @@ export async function getUserSubscriptions(
 ): Promise<SubscriptionInfo[]> {
   const { getItems } = await import('./items.js');
   const allItems = getItems();
-  const itemMap = new Map(allItems.map((i) => [i.name, i]));
+
 
   const subs: SubscriptionInfo[] = [];
   for (const item of allItems) {
@@ -402,8 +402,8 @@ export async function clearAllGuildData(guildId: string): Promise<void> {
   const pk = `GUILD#${guildId}`;
 
   // Query all items for this guild
-  let lastKey: Record<string, any> | undefined;
-  const allKeys: { PK: any; SK: any }[] = [];
+  let lastKey: Record<string, AttributeValue> | undefined;
+  const allKeys: { PK: AttributeValue; SK: AttributeValue }[] = [];
 
   do {
     const result = await dynamo.send(new QueryCommand({

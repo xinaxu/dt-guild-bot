@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "deploy-commands": "tsx src/deploy-commands.ts"
   },
   "dependencies": {

@@ -103,7 +103,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await handlePublishDone(interaction, stateKey);
       } else if (interaction.customId.startsWith('sub_back_')) {
         await handleSubBackToCategories(interaction);
-      } else if (interaction.customId === 'sub_cat_done_') {
+      } else if (interaction.customId.startsWith('sub_cat_done_')) {
         await handleSubCatDone(interaction);
       } else if (interaction.customId === 'queue_prev' || interaction.customId === 'queue_next') {
         await handleQueueNav(interaction);

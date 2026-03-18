@@ -124,6 +124,7 @@ export function buildItemCatalogEmbed(items: ItemInfo[]): EmbedBuilder[] {
 export function buildMySubsEmbed(
   subs: SubscriptionInfo[],
   username: string,
+  allCategories: string[],
 ): { embeds: EmbedBuilder[], categories: string[] } {
   const grouped = new Map<string, SubscriptionInfo[]>();
   for (const sub of subs) {
@@ -132,34 +133,37 @@ export function buildMySubsEmbed(
     grouped.get(cat)!.push(sub);
   }
 
-  const sortedCategories = Array.from(grouped.keys()).sort();
   const embeds: EmbedBuilder[] = [];
 
-  if (sortedCategories.length === 0) {
+  if (allCategories.length === 0) {
     const emptyEmbed = new EmbedBuilder()
       .setTitle(`📋 ${username}'s Subscriptions`)
       .setColor(0x57f287)
-      .setDescription('You have no active subscriptions. Use **Subscribe** to add some.');
+      .setDescription('No items configured in the catalog.');
     return { embeds: [emptyEmbed], categories: ['None'] };
   }
 
-  for (const [index, category] of sortedCategories.entries()) {
-    const categorySubs = grouped.get(category)!;
+  for (const [index, category] of allCategories.entries()) {
+    const categorySubs = grouped.get(category) || [];
     const embed = new EmbedBuilder()
       .setTitle(`📋 ${username}'s Subscriptions`)
       .setColor(0x57f287)
-      .setFooter({ text: `Page ${index + 1} of ${sortedCategories.length} • Category: ${category}` });
+      .setFooter({ text: `Page ${index + 1} of ${allCategories.length} • Category: ${category}` });
 
     let catText = `**${category}**\n`;
-    for (const sub of categorySubs) {
-      catText += `  ${getIcon(sub.icon)} ${sub.name} — Position: ${sub.position}/${sub.total}\n`;
+    if (categorySubs.length > 0) {
+      for (const sub of categorySubs) {
+        catText += `  ${getIcon(sub.icon)} ${sub.name} — Position: ${sub.position}/${sub.total}\n`;
+      }
+    } else {
+      catText += '\n*No active subscriptions in this category.*\n*Use **Subscribe** to join a queue.*';
     }
     
     embed.setDescription(catText);
     embeds.push(embed);
   }
 
-  return { embeds, categories: sortedCategories };
+  return { embeds, categories: allCategories };
 }
 
 /**
@@ -181,7 +185,7 @@ export function buildAssignmentPreviewEmbed(
   }
 
   const embeds: EmbedBuilder[] = [];
-  let currentEmbed = new EmbedBuilder()
+  const currentEmbed = new EmbedBuilder()
     .setTitle('📋 Assignment Preview')
     .setColor(0xfee75c);
   let currentDescCount = 0;

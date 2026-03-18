@@ -3,9 +3,6 @@ import {
   type TextChannel,
   ChannelType,
   EmbedBuilder,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
 } from 'discord.js';
 import { requireAdmin, isAdmin } from '../utils/permissions.js';
 import { isGuildConfigured } from '../db/registry.js';
@@ -13,7 +10,6 @@ import {
   buildAssignmentPreviewEmbed,
   buildAnnouncementEmbed,
   buildPrintPreviewEmbed,
-  buildPrintAnnouncementEmbed,
   buildSubLogsEmbed,
   buildAuctionLogsEmbed,
   chunkEmbeds,
@@ -29,7 +25,7 @@ import {
   ButtonStyle,
   ChannelSelectMenuBuilder,
   StringSelectMenuBuilder,
-  UserSelectMenuBuilder,
+  type MessageActionRowComponentBuilder,
 } from 'discord.js';
 
 export async function handleAuctionCommand(
@@ -243,7 +239,7 @@ function safeIcon(icon: string | undefined): string {
 function buildPublishUI(state: PublishState, stateKey: string): {
   content: string | null;
   embeds: import('discord.js').EmbedBuilder[];
-  components: ActionRowBuilder<any>[];
+  components: ActionRowBuilder<MessageActionRowComponentBuilder>[];
 } {
   const allItems = getItems();
   const allCategories = [...new Set(allItems.map((i) => i.category || 'Uncategorized'))].sort();
@@ -335,7 +331,7 @@ function buildPublishUI(state: PublishState, stateKey: string): {
       .setStyle(ButtonStyle.Danger),
   );
 
-  const components: ActionRowBuilder<any>[] = [
+  const components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(catSelect),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(itemSelect),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(qtySelect),
@@ -562,15 +558,6 @@ interface PendingAuction {
 }
 
 const pendingAuctions = new Map<string, PendingAuction>();
-
-// ─── Pending queue print state ──────────────────────────────────────────────
-
-interface PendingPrint {
-  queues: QueueInfo[];
-  channelId?: string;
-}
-
-const pendingPrints = new Map<string, PendingPrint>();
 
 // ─── Auction Handlers ───────────────────────────────────────────────────────
 

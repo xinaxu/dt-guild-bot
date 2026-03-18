@@ -6,9 +6,10 @@ import {
   UserSelectMenuBuilder,
   EmbedBuilder,
   StringSelectMenuBuilder,
+  type MessageActionRowComponentBuilder,
 } from 'discord.js';
 import { requireMember, isAdmin } from '../utils/permissions.js';
-import { buildMySubsEmbed, chunkEmbeds } from '../utils/embeds.js';
+import { buildMySubsEmbed } from '../utils/embeds.js';
 import { getItems } from '../db/items.js';
 import {
   getUserSubscriptions,
@@ -16,7 +17,6 @@ import {
   unsubscribe,
 } from '../db/subscriptions.js';
 import {
-  createSelectPagination,
   buildSelectPage,
   getSelectState,
   handleSelectMenuUpdate,
@@ -134,14 +134,15 @@ export async function handleSubViewOwn(
   const member = interaction.member as GuildMember;
 
   const subs = await getUserSubscriptions(interaction.guildId!, member.id);
-  const { embeds, categories } = buildMySubsEmbed(subs, member.displayName);
+  const allCategories = [...new Set(getItems().map((i) => i.category || 'Uncategorized'))].sort();
+  const { embeds, categories } = buildMySubsEmbed(subs, member.displayName, allCategories);
 
   const state = createMySubsPagination(interaction.message.id, embeds, categories, member.id);
   const currentCategory = state.categories[state.currentPage];
   const { canSubscribe, canUnsubscribe } = await getCategorySubState(interaction.guildId!, member.id, currentCategory);
   const page = buildMySubsPage(state, canSubscribe, canUnsubscribe);
 
-  const reply = await interaction.editReply({
+  await interaction.editReply({
     content: null,
     embeds: page.embeds,
     components: page.components,
@@ -171,7 +172,8 @@ async function showSubsForUser(
   const isProxy = userId !== callerMember.id;
 
   const subs = await getUserSubscriptions(interaction.guildId!, userId);
-  const { embeds, categories } = buildMySubsEmbed(subs, displayName);
+  const allCategories = [...new Set(getItems().map((i) => i.category || 'Uncategorized'))].sort();
+  const { embeds, categories } = buildMySubsEmbed(subs, displayName, allCategories);
 
   if (isProxy && embeds.length > 0) {
     embeds.forEach(e => e.setTitle(`📋 ${displayName}'s Subscriptions (managed by you)`));
@@ -185,7 +187,7 @@ async function showSubsForUser(
   const { canSubscribe, canUnsubscribe } = await getCategorySubState(interaction.guildId!, userId, currentCategory);
   const page = buildMySubsPage(state, canSubscribe, canUnsubscribe);
 
-  const reply = await interaction.editReply({
+  await interaction.editReply({
     content: null,
     embeds: page.embeds,
     components: page.components,
@@ -237,7 +239,7 @@ function buildCategoryUI(state: SubSelectState, title: string) {
     description: `${count} item(s)`,
   }));
 
-  const components: any[] = [];
+  const components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [];
 
   if (catOptions.length > 0) {
     const select = new StringSelectMenuBuilder()
@@ -308,7 +310,7 @@ function buildItemsUI(state: SubSelectState, title: string) {
     };
   });
 
-  const components: any[] = [];
+  const components: ActionRowBuilder<MessageActionRowComponentBuilder>[] = [];
 
   // Discord select max 25 options — categories should always be under 25
   const select = new StringSelectMenuBuilder()
@@ -560,7 +562,8 @@ export async function handleSubCancel(
 
   // Return to the MySubs view
   const updatedSubs = await getUserSubscriptions(interaction.guildId!, targetId);
-  const { embeds, categories } = buildMySubsEmbed(updatedSubs, targetName);
+  const allCategories = [...new Set(getItems().map((i) => i.category || 'Uncategorized'))].sort();
+  const { embeds, categories } = buildMySubsEmbed(updatedSubs, targetName, allCategories);
   const isProxy = targetId !== (interaction.member as GuildMember).id;
   if (isProxy && embeds.length > 0) {
     embeds.forEach(e => e.setTitle(`📋 ${targetName}'s Subscriptions (managed by you)`));
@@ -634,7 +637,8 @@ export async function handleSubscribeDone(
 
   // Show updated subscription list
   const updatedSubs = await getUserSubscriptions(interaction.guildId!, targetId);
-  const { embeds, categories } = buildMySubsEmbed(updatedSubs, targetName);
+  const allCategories = [...new Set(getItems().map((i) => i.category || 'Uncategorized'))].sort();
+  const { embeds, categories } = buildMySubsEmbed(updatedSubs, targetName, allCategories);
   const isProxy = targetId !== (interaction.member as GuildMember).id;
   if (isProxy && embeds.length > 0) {
     embeds.forEach(e => e.setTitle(`📋 ${targetName}'s Subscriptions (managed by you)`));
@@ -708,7 +712,8 @@ export async function handleUnsubscribeDone(
 
   // Show updated subscription list
   const updatedSubs = await getUserSubscriptions(interaction.guildId!, targetId);
-  const { embeds, categories } = buildMySubsEmbed(updatedSubs, targetName);
+  const allCategories = [...new Set(getItems().map((i) => i.category || 'Uncategorized'))].sort();
+  const { embeds, categories } = buildMySubsEmbed(updatedSubs, targetName, allCategories);
   const isProxy = targetId !== (interaction.member as GuildMember).id;
   if (isProxy && embeds.length > 0) {
     embeds.forEach(e => e.setTitle(`📋 ${targetName}'s Subscriptions (managed by you)`));
