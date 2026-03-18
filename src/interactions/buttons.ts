@@ -5,6 +5,7 @@ import {
   handleAuctionConfirm,
   handleLogsPrintConfirm,
 } from '../commands/auction.js';
+import { requireAdmin } from '../utils/permissions.js';
 import {
   handleRemoveMemberContinue,
   handleRemoveMemberConfirm,
@@ -59,12 +60,15 @@ export async function handleButtonInteraction(
       }
 
     } else if (id.startsWith('auction_confirm_')) {
+      if (!(await requireAdmin(interaction))) return;
       const stateKey = id.replace('auction_confirm_', '');
       await handleAuctionConfirm(interaction, stateKey);
     } else if (id.startsWith('print_logs_confirm_')) {
+      if (!(await requireAdmin(interaction))) return;
       const stateKey = id.replace('print_logs_confirm_', '');
       await handleLogsPrintConfirm(interaction, stateKey);
     } else if (id.startsWith('print_logs_send_here_')) {
+      if (!(await requireAdmin(interaction))) return;
       const stateKey = id.replace('print_logs_send_here_', '');
       await handleLogsPrintConfirm(interaction, stateKey, true);
     } else if (id === 'auction_cancel') {
@@ -76,8 +80,10 @@ export async function handleButtonInteraction(
 
     // ─── Remove Member ───
     } else if (id === 'removemember_continue') {
+      if (!(await requireAdmin(interaction))) return;
       await handleRemoveMemberContinue(interaction);
     } else if (id.startsWith('removemember_confirm_')) {
+      if (!(await requireAdmin(interaction))) return;
       const userId = id.replace('removemember_confirm_', '');
       await handleRemoveMemberConfirm(interaction, userId);
     } else if (id === 'removemember_cancel') {
@@ -103,6 +109,7 @@ export async function handleButtonInteraction(
 
     // ─── Reset ───
     } else if (id === 'reset_confirm') {
+      if (!(await requireAdmin(interaction))) return;
       await handleResetConfirm(interaction);
     } else if (id === 'reset_cancel') {
       await interaction.update({

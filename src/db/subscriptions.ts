@@ -106,17 +106,19 @@ async function persistQueue(guildId: string, itemName: string, entries: QueueEnt
   }
 }
 
-// ─── Concurrency Lock ────────────────────────────────────────────────────────
+// ─── Per-Guild Concurrency Lock ──────────────────────────────────────────────
 
-let writeLockPromise: Promise<void> = Promise.resolve();
+const guildWriteLocks = new Map<string, Promise<void>>();
 
 /**
- * Simple serial write lock to prevent interleaving of async operations.
+ * Per-guild serial write lock to prevent interleaving of async operations.
+ * Each guild has its own lock so busy guilds don't block others.
  */
-function withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
-  const prev = writeLockPromise;
+function withWriteLock<T>(guildId: string, fn: () => Promise<T>): Promise<T> {
+  const prev = guildWriteLocks.get(guildId) ?? Promise.resolve();
   let resolve: () => void;
-  writeLockPromise = new Promise<void>((r) => { resolve = r; });
+  const next = new Promise<void>((r) => { resolve = r; });
+  guildWriteLocks.set(guildId, next);
   return prev.then(async () => {
     try {
       return await fn();
@@ -200,7 +202,7 @@ export async function subscribe(
   userId: string,
   displayName: string,
 ): Promise<boolean> {
-  return withWriteLock(async () => {
+  return withWriteLock(guildId, async () => {
     const queue = await loadQueue(guildId, itemName);
 
     // Check for duplicate
@@ -218,7 +220,7 @@ export async function unsubscribe(
   itemName: string,
   userId: string,
 ): Promise<boolean> {
-  return withWriteLock(async () => {
+  return withWriteLock(guildId, async () => {
     const queue = await loadQueue(guildId, itemName);
     const index = queue.findIndex((e) => e.userId === userId);
     if (index === -1) return false;
@@ -262,7 +264,7 @@ export async function rotateTop(
   itemName: string,
   count: number,
 ): Promise<{ userId: string; displayName: string; position: number }[]> {
-  return withWriteLock(async () => {
+  return withWriteLock(guildId, async () => {
     const queue = await loadQueue(guildId, itemName);
     if (queue.length === 0) return [];
 
@@ -288,7 +290,7 @@ export async function moveToTop(
   itemName: string,
   userId: string,
 ): Promise<boolean> {
-  return withWriteLock(async () => {
+  return withWriteLock(guildId, async () => {
     const queue = await loadQueue(guildId, itemName);
     const index = queue.findIndex((e) => e.userId === userId);
     if (index === -1) return false;
@@ -310,7 +312,7 @@ export async function moveToBottom(
   itemName: string,
   userId: string,
 ): Promise<boolean> {
-  return withWriteLock(async () => {
+  return withWriteLock(guildId, async () => {
     const queue = await loadQueue(guildId, itemName);
     const index = queue.findIndex((e) => e.userId === userId);
     if (index === -1) return false;
@@ -318,6 +320,34 @@ export async function moveToBottom(
 
     const [entry] = queue.splice(index, 1);
     queue.push(entry);
+
+    const cache = getGuildCache(guildId);
+    cache.set(itemName, queue);
+    await persistQueue(guildId, itemName, queue);
+    await logSubscriptionAction(guildId, 'cut-line', entry.userId, entry.displayName, itemName);
+    return true;
+  });
+}
+
+/**
+ * Atomically move a user to a specific position in the queue.
+ * Used by cut-line Up/Down to avoid O(n) separate DB writes.
+ */
+export async function moveToPosition(
+  guildId: string,
+  itemName: string,
+  userId: string,
+  newIndex: number,
+): Promise<boolean> {
+  return withWriteLock(guildId, async () => {
+    const queue = await loadQueue(guildId, itemName);
+    const currentIndex = queue.findIndex((e) => e.userId === userId);
+    if (currentIndex === -1) return false;
+    if (currentIndex === newIndex) return true;
+
+    const safeIndex = Math.max(0, Math.min(queue.length - 1, newIndex));
+    const [entry] = queue.splice(currentIndex, 1);
+    queue.splice(safeIndex, 0, entry);
 
     const cache = getGuildCache(guildId);
     cache.set(itemName, queue);
@@ -341,13 +371,12 @@ export async function getItemQueue(
 }
 
 export async function removeUserFromAll(
-
   guildId: string,
   userId: string,
 ): Promise<SubscriptionInfo[]> {
   const subs = await getUserSubscriptions(guildId, userId);
 
-  return withWriteLock(async () => {
+  return withWriteLock(guildId, async () => {
     for (const sub of subs) {
       const queue = await loadQueue(guildId, sub.name);
       const index = queue.findIndex((e) => e.userId === userId);
@@ -399,6 +428,10 @@ export async function removeItemFromAllSubs(guildId: string, itemName: string): 
  * Clear ALL data for a guild (queues, logs, config) — used by reset.
  */
 export async function clearAllGuildData(guildId: string): Promise<void> {
+  return withWriteLock(guildId, async () => {
+  // Clear in-memory cache for this guild
+  queueCache.delete(guildId);
+
   const pk = `GUILD#${guildId}`;
 
   // Query all items for this guild
@@ -434,7 +467,5 @@ export async function clearAllGuildData(guildId: string): Promise<void> {
       },
     }));
   }
-
-  // Clear memory cache for this guild
-  queueCache.delete(guildId);
+  }); // end withWriteLock
 }

@@ -121,6 +121,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await handleCutLineMoveUser(interaction, 'up');
       } else if (interaction.customId === 'cutline_move_down') {
         await handleCutLineMoveUser(interaction, 'down');
+      } else if (interaction.customId === 'auction_cancel') {
+        await interaction.update({ content: 'Cancelled.', embeds: [], components: [] });
       } else {
         await handleButtonInteraction(interaction);
       }

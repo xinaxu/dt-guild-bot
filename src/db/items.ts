@@ -5,11 +5,6 @@ import { dirname, join } from 'path';
 
 // ─── Static item catalog loaded from items.json at startup ──────────────────
 
-interface ItemJsonEntry {
-  category: string;
-  items: Record<string, string>; // { "Item Name": "<:emoji:id>" }
-}
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -17,16 +12,42 @@ const __dirname = dirname(__filename);
 // At runtime: __dirname = dist/sheets/, items.json lives at src/items.json
 // Go up 2 levels (dist/sheets → dist → project root) then into src/
 const rawJson = readFileSync(join(__dirname, '..', '..', 'src', 'items.json'), 'utf-8');
-const itemJsonEntries: ItemJsonEntry[] = JSON.parse(rawJson);
+const itemJsonEntries: unknown = JSON.parse(rawJson);
+
+// ─── Input Validation ────────────────────────────────────────────────────────
+if (!Array.isArray(itemJsonEntries)) {
+  throw new Error('items.json must be a JSON array');
+}
 
 const ALL_ITEMS: ItemInfo[] = [];
-for (const entry of itemJsonEntries) {
-  for (const [name, icon] of Object.entries(entry.items)) {
+for (let i = 0; i < itemJsonEntries.length; i++) {
+  const entry = itemJsonEntries[i] as Record<string, unknown>;
+  if (!entry || typeof entry !== 'object') {
+    throw new Error(`items.json[${i}]: each entry must be an object`);
+  }
+  if (typeof entry.category !== 'string' || !entry.category) {
+    throw new Error(`items.json[${i}]: missing or invalid "category" (must be a non-empty string)`);
+  }
+  if (!entry.items || typeof entry.items !== 'object' || Array.isArray(entry.items)) {
+    throw new Error(`items.json[${i}]: missing or invalid "items" (must be an object)`);
+  }
+  const items = entry.items as Record<string, string>;
+  const itemCount = Object.keys(items).length;
+  if (itemCount > 25) {
+    throw new Error(`items.json[${i}] category "${entry.category}": has ${itemCount} items, max is 25 (Discord select menu limit)`);
+  }
+  for (const [name, icon] of Object.entries(items)) {
+    if (typeof icon !== 'string') {
+      throw new Error(`items.json[${i}] item "${name}": icon must be a string`);
+    }
+    if (icon && !icon.match(/^<a?:\w+:\d+>$/)) {
+      console.warn(`⚠️ items.json[${i}] item "${name}": icon "${icon}" may not be a valid Discord custom emoji`);
+    }
     ALL_ITEMS.push({ name, category: entry.category, icon });
   }
 }
 
-console.log(`✅ Loaded ${ALL_ITEMS.length} item(s) from items.json`);
+console.log(`✅ Loaded ${ALL_ITEMS.length} item(s) from items.json (${itemJsonEntries.length} categories)`);
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 

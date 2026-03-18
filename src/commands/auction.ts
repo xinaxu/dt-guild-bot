@@ -4,7 +4,7 @@ import {
   ChannelType,
   EmbedBuilder,
 } from 'discord.js';
-import { requireAdmin, isAdmin } from '../utils/permissions.js';
+import { requireAdmin, requireMember, isAdmin } from '../utils/permissions.js';
 import { isGuildConfigured } from '../db/registry.js';
 import {
   buildAssignmentPreviewEmbed,
@@ -17,7 +17,7 @@ import {
   type QueueInfo,
 } from '../utils/embeds.js';
 import { getItems } from '../db/items.js';
-import { rotateTop, getSubscriptions, getRecentSubLogs, moveToTop, moveToBottom, getItemQueue } from '../db/subscriptions.js';
+import { rotateTop, getSubscriptions, getRecentSubLogs, moveToTop, moveToPosition, getItemQueue } from '../db/subscriptions.js';
 import { logAssignment, getRecentAuctionLogs } from '../db/auctionLog.js';
 import {
   ActionRowBuilder,
@@ -41,8 +41,10 @@ export async function handleAuctionCommand(
     return handleAuctionStore(interaction);
   }
 
-  // Queue is public
+  // Queue requires member role
   if (subcommand === 'queue') {
+    await interaction.deferReply({ ephemeral: true });
+    if (!(await requireMember(interaction))) return;
     return handleAuctionQueue(interaction);
   }
 
@@ -155,6 +157,7 @@ export async function handleAuctionHelp(
 \`/auction sub\` — Open personal subscription dashboard.
 \`/auction queue\` — View live queues.
 \`/auction store\` — View all items.
+\`/auction help\` — Show this help page.
 `;
   } else {
     description = `
@@ -172,6 +175,9 @@ export async function handleAuctionHelp(
 
 *Browse Catalog:*
 \`/auction store\` — View all available auction items that you can subscribe to.
+
+*Help:*
+\`/auction help\` — Show this help page.
 `;
   }
 
@@ -584,9 +590,44 @@ export async function handleAuctionConfirm(
     components: [],
   });
 
-  console.log(`[Publish] Confirm clicked. Executing rotation and log writes for StateKey: ${stateKey}`);
+  console.log(`[Publish] Confirm clicked. Re-reading queues and executing rotation for StateKey: ${stateKey}`);
 
   const today = new Date().toISOString().split('T')[0];
+  const warnings: string[] = [];
+
+  // Re-calculate assignments from live queue state (fixes race condition)
+  const liveAssignments: typeof pending.assignments = [];
+  for (const { item, quantity } of pending.selectedItems) {
+    const subs = await getSubscriptions(interaction.guildId!, item.name);
+    const assigned: { userId: string; displayName: string; position: number }[] = [];
+    let unassignedQty = 0;
+
+    if (subs.length === 0) {
+      unassignedQty = quantity;
+    } else {
+      for (let i = 0; i < quantity; i++) {
+        const sub = subs[i % subs.length];
+        assigned.push({
+          userId: sub.userId,
+          displayName: sub.displayName,
+          position: (i % subs.length) + 1,
+        });
+      }
+    }
+    liveAssignments.push({ item, quantity, assigned, unassignedQty });
+  }
+
+  // Check if assignments changed since preview
+  for (let i = 0; i < liveAssignments.length; i++) {
+    const live = liveAssignments[i];
+    const preview = pending.assignments[i];
+    if (!preview) continue;
+    const liveNames = live.assigned.map(a => a.userId).join(',');
+    const previewNames = preview.assigned.map(a => a.userId).join(',');
+    if (liveNames !== previewNames) {
+      warnings.push(`⚠️ **${live.item.name}**: assignments changed since preview (queue was modified)`);
+    }
+  }
 
   // Rotate queues
   for (const { item, quantity } of pending.selectedItems) {
@@ -594,7 +635,7 @@ export async function handleAuctionConfirm(
   }
 
   // Log to Auction_Log
-  for (const a of pending.assignments) {
+  for (const a of liveAssignments) {
     if (a.assigned.length > 0) {
       const assignedNames = a.assigned.map((m) => m.displayName).join(', ');
       const assignedIds = a.assigned.map((m) => m.userId).join(', ');
@@ -610,7 +651,7 @@ export async function handleAuctionConfirm(
       const channel = await guild.channels.fetch(channelId);
       if (channel && channel.isTextBased()) {
         const announcementEmbeds = buildAnnouncementEmbed(
-          pending.assignments.filter((a) => a.assigned.length > 0),
+          liveAssignments.filter((a) => a.assigned.length > 0),
           today,
         );
         const chunks = chunkEmbeds(announcementEmbeds);
@@ -626,8 +667,9 @@ export async function handleAuctionConfirm(
   // Clean up state
   pendingAuctions.delete(stateKey);
 
+  const warningText = warnings.length > 0 ? `\n\n${warnings.join('\n')}` : '';
   await interaction.editReply(
-    '✅ Auction published! Assignments posted and queues rotated.',
+    `✅ Auction published! Assignments posted and queues rotated.${warningText}`,
   );
 }
 
@@ -707,8 +749,6 @@ async function buildQueueCategoryPage(
 async function handleAuctionQueue(
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
-  
   const items = getItems();
   if (items.length === 0) {
     await interaction.editReply('❌ No items configured in the catalog.');
@@ -1197,34 +1237,12 @@ export async function handleCutLineMoveUser(
   if (direction === 'top') {
     await moveToTop(interaction.guildId!, state.itemName, state.selectedUserId);
   } else {
-    // Move up = moveToTop by 1, down = moveToBottom by 1 — use moveUp/moveDown helper
     const queue = await getItemQueue(interaction.guildId!, state.itemName);
     const idx = queue.findIndex((e) => e.userId === state.selectedUserId);
     if (idx !== -1) {
       const targetIdx = direction === 'up' ? Math.max(0, idx - 1) : Math.min(queue.length - 1, idx + 1);
       if (targetIdx !== idx) {
-        const newQueue = [...queue];
-        const [entry] = newQueue.splice(idx, 1);
-        newQueue.splice(targetIdx, 0, entry);
-        // Persist using moveToTop/Bottom approach: move to target by first moving to top then repositioning
-        // Simpler: call the exported moveToTop which directly keeps state in memory
-        // We'll re-order by rebuilding queue in subscriptions via direct manipulation
-        // Since we don't have a generic "move to idx" function, we'll simulate:
-        if (direction === 'up') {
-          // Move original entry one step up
-          await moveToTop(interaction.guildId!, state.itemName, state.selectedUserId);
-          for (let i = 0; i < targetIdx; i++) {
-            await moveToBottom(interaction.guildId!, state.itemName, queue[i].userId);
-          }
-        } else {
-          // Move down by one: put the next entry above this one
-          if (idx < queue.length - 1) {
-            await moveToTop(interaction.guildId!, state.itemName, queue[idx + 1].userId);
-            for (let i = 0; i < idx; i++) {
-              await moveToBottom(interaction.guildId!, state.itemName, queue[i].userId);
-            }
-          }
-        }
+        await moveToPosition(interaction.guildId!, state.itemName, state.selectedUserId!, targetIdx);
       }
     }
   }

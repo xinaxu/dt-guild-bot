@@ -349,52 +349,6 @@ export function buildPrintPreviewEmbed(queues: QueueInfo[]): EmbedBuilder[] {
 }
 
 /**
- * Creates the published print announcement embeds for /auction print.
- */
-export function buildPrintAnnouncementEmbed(queues: QueueInfo[]): EmbedBuilder[] {
-  const grouped = new Map<string, typeof queues>();
-  for (const q of queues) {
-    const cat = q.item.category || 'Uncategorized';
-    if (!grouped.has(cat)) grouped.set(cat, []);
-    grouped.get(cat)!.push(q);
-  }
-
-  const embeds: EmbedBuilder[] = [];
-  let currentEmbed = new EmbedBuilder()
-    .setTitle('📋 Current Auction Queues')
-    .setColor(0x3498db);
-  let currentDescCount = 0;
-
-  for (const [category, catQueues] of grouped) {
-    let catText = `**${category}**\n`;
-    for (const q of catQueues) {
-      if (q.queue.length === 0) {
-        catText += `${getIcon(q.item.icon)} ${q.item.name}: *(Empty)*\n`;
-      } else {
-        const members = q.queue.map((m, i) => `${i + 1}. <@${m.userId}>`).join(', ');
-        catText += `${getIcon(q.item.icon)} ${q.item.name} (${q.queue.length}): ${members}\n`;
-      }
-    }
-    catText += '\n';
-
-    if (currentDescCount + catText.length > 3800) {
-      embeds.push(currentEmbed);
-      currentEmbed = new EmbedBuilder()
-        .setColor(0x3498db) 
-        .setDescription(catText);
-      currentDescCount = catText.length;
-    } else {
-      const existingDesc = currentEmbed.data.description || '';
-      currentEmbed.setDescription(existingDesc + catText);
-      currentDescCount += catText.length;
-    }
-  }
-
-  embeds.push(currentEmbed);
-  return embeds;
-}
-
-/**
  * Creates the preview embeds for subscription logs.
  */
 export function buildSubLogsEmbed(
