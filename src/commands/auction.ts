@@ -9,6 +9,7 @@ import { isGuildConfigured } from '../db/registry.js';
 import {
   buildAssignmentPreviewEmbed,
   buildAnnouncementEmbed,
+  buildPerPersonEmbed,
   buildPrintPreviewEmbed,
   buildSubLogsEmbed,
   buildAuctionLogsEmbed,
@@ -656,6 +657,16 @@ export async function handleAuctionConfirm(
         );
         const chunks = chunkEmbeds(announcementEmbeds);
         for (const chunk of chunks) {
+          await (channel as TextChannel).send({ embeds: chunk });
+        }
+
+        // Post per-person bidding guide
+        const perPersonEmbeds = buildPerPersonEmbed(
+          liveAssignments.filter((a) => a.assigned.length > 0),
+          today,
+        );
+        const perPersonChunks = chunkEmbeds(perPersonEmbeds);
+        for (const chunk of perPersonChunks) {
           await (channel as TextChannel).send({ embeds: chunk });
         }
       }

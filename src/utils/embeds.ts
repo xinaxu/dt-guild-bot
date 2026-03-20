@@ -278,6 +278,78 @@ export function buildAnnouncementEmbed(
 }
 
 /**
+ * Creates the per-person bidding guide embeds.
+ * Shows each user what items to bid on, with copy numbers when quantity > 1.
+ */
+export function buildPerPersonEmbed(
+  assignments: {
+    item: ItemInfo;
+    quantity: number;
+    assigned: { userId: string; displayName: string }[];
+  }[],
+  date: string,
+): EmbedBuilder[] {
+  // Build a map of userId → list of { item, copyNumber, totalQty }
+  const userItems = new Map<string, {
+    displayName: string;
+    items: { icon: string | undefined; name: string; copyNumber: number; totalQty: number }[];
+  }>();
+
+  for (const a of assignments) {
+    for (let copyIdx = 0; copyIdx < a.assigned.length; copyIdx++) {
+      const member = a.assigned[copyIdx];
+      if (!userItems.has(member.userId)) {
+        userItems.set(member.userId, { displayName: member.displayName, items: [] });
+      }
+      userItems.get(member.userId)!.items.push({
+        icon: a.item.icon,
+        name: a.item.name,
+        copyNumber: copyIdx + 1,
+        totalQty: a.quantity,
+      });
+    }
+  }
+
+  // Format lines
+  const lines: string[] = [];
+  for (const [userId, data] of userItems) {
+    const itemStrs = data.items.map((i) => {
+      const suffix = i.totalQty > 1 ? `(#${i.copyNumber})` : '';
+      return `${getIcon(i.icon)} ${i.name}${suffix}`;
+    });
+    lines.push(`<@${userId}>: ${itemStrs.join(', ')}`);
+  }
+
+  // Build embeds with pagination
+  const embeds: EmbedBuilder[] = [];
+  let currentEmbed = new EmbedBuilder()
+    .setTitle(`📌 Your Bidding Guide — ${date}`)
+    .setColor(0x5865f2);
+  let currentDescCount = 0;
+  let currentText = '';
+
+  for (const line of lines) {
+    if (currentDescCount + line.length + 1 > 3800) {
+      currentEmbed.setDescription(currentText);
+      embeds.push(currentEmbed);
+      currentEmbed = new EmbedBuilder().setColor(0x5865f2);
+      currentText = line + '\n';
+      currentDescCount = line.length + 1;
+    } else {
+      currentText += line + '\n';
+      currentDescCount += line.length + 1;
+    }
+  }
+
+  if (currentText) {
+    currentEmbed.setDescription(currentText);
+    embeds.push(currentEmbed);
+  }
+
+  return embeds;
+}
+
+/**
  * Creates the remove member summary embed.
  */
 export function buildRemoveMemberSummaryEmbed(
