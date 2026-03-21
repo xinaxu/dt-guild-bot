@@ -9,6 +9,7 @@ import { requireAdmin } from '../utils/permissions.js';
 import {
   handleRemoveMemberContinue,
   handleRemoveMemberConfirm,
+  handleRemoveMemberManualButton,
 } from '../commands/removemember.js';
 import { handleResetConfirm } from '../commands/reset.js';
 import {
@@ -82,6 +83,9 @@ export async function handleButtonInteraction(
     } else if (id === 'removemember_continue') {
       if (!(await requireAdmin(interaction))) return;
       await handleRemoveMemberContinue(interaction);
+    } else if (id === 'removemember_manual') {
+      if (!(await requireAdmin(interaction))) return;
+      await handleRemoveMemberManualButton(interaction);
     } else if (id.startsWith('removemember_confirm_')) {
       if (!(await requireAdmin(interaction))) return;
       const userId = id.replace('removemember_confirm_', '');

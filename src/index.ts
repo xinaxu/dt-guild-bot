@@ -188,7 +188,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     // ─── Modals ───
     } else if (interaction.isModalSubmit()) {
       console.log(`[Interaction] Received ModalSubmit: ${interaction.customId} from ${interaction.user.tag}`);
-      await handleModalInteraction(interaction);
+      await handleModalInteraction(interaction, client);
     }
   } catch (error) {
     const interactionName = interaction.isCommand() ? interaction.commandName : ('customId' in interaction ? interaction.customId : interaction.type);

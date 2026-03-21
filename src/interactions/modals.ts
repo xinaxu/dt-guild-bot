@@ -1,14 +1,18 @@
-import type { ModalSubmitInteraction } from 'discord.js';
+import type { ModalSubmitInteraction, Client } from 'discord.js';
+import { handleRemoveMemberManualSubmit } from '../commands/removemember.js';
 
 export async function handleModalInteraction(
   interaction: ModalSubmitInteraction,
+  client: Client,
 ): Promise<void> {
   const id = interaction.customId;
 
   try {
-    // No modals currently — setup no longer uses modals.
-    // This handler is kept as a placeholder for future modal interactions.
-    console.warn(`Unhandled modal interaction: ${id}`);
+    if (id === 'removemember_manual_modal') {
+      await handleRemoveMemberManualSubmit(interaction, client);
+    } else {
+      console.warn(`Unhandled modal interaction: ${id}`);
+    }
   } catch (error) {
     console.error('Error handling modal interaction:', error);
     try {

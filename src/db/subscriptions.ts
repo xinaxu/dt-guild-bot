@@ -259,6 +259,31 @@ export async function getUserSubscriptions(
   return subs;
 }
 
+/**
+ * Find all unique users in any queue whose displayName matches (case-insensitive).
+ * Returns deduplicated { userId, displayName } pairs.
+ */
+export async function findUsersByDisplayName(
+  guildId: string,
+  name: string,
+): Promise<{ userId: string; displayName: string }[]> {
+  const { getItems } = await import('./items.js');
+  const allItems = getItems();
+  const lowerName = name.toLowerCase();
+
+  const found = new Map<string, string>(); // userId → displayName
+  for (const item of allItems) {
+    const queue = await loadQueue(guildId, item.name);
+    for (const entry of queue) {
+      if (entry.displayName.toLowerCase() === lowerName && !found.has(entry.userId)) {
+        found.set(entry.userId, entry.displayName);
+      }
+    }
+  }
+
+  return [...found.entries()].map(([userId, displayName]) => ({ userId, displayName }));
+}
+
 export async function rotateTop(
   guildId: string,
   itemName: string,
