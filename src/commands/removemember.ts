@@ -253,11 +253,8 @@ export async function handleRemoveMemberConfirm(
 
   try {
     const removed = await removeUserFromAll(interaction.guildId!, userId);
-    const itemList = removed
-      .map((s) => `  ${s.icon || '📦'} ${s.name}`)
-      .join('\n');
     await interaction.editReply(
-      `✅ Removed <@${userId}> from ${removed.length} subscription(s):\n${itemList}`,
+      `✅ Removed <@${userId}> from **${removed.length}** subscription(s).`,
     );
   } catch (error) {
     console.error('Error removing member:', error);
