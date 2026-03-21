@@ -196,4 +196,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
+// ─── Graceful Shutdown ───────────────────────────────────────────────────────
+function shutdown(signal: string): void {
+  console.log(`\n⚠️ Received ${signal}. Shutting down gracefully...`);
+  client.destroy();
+  console.log('✅ Discord client destroyed. Goodbye!');
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
 client.login(config.botToken);
