@@ -39,6 +39,9 @@ const commands = [
     )
     .addSubcommand((sub) =>
       sub.setName('reset').setDescription('Reset all bot data — removes all items, subscriptions, and logs (Admin only)'),
+    )
+    .addSubcommand((sub) =>
+      sub.setName('time').setDescription('View the next auction time'),
     ),
 ].map((cmd) => cmd.toJSON());
 

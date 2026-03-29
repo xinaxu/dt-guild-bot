@@ -42,6 +42,10 @@ export async function handleAuctionCommand(
     return handleAuctionStore(interaction);
   }
 
+  if (subcommand === 'time') {
+    return handleAuctionTime(interaction);
+  }
+
   // Queue requires member role
   if (subcommand === 'queue') {
     await interaction.deferReply({ ephemeral: true });
@@ -75,6 +79,55 @@ export async function handleAuctionCommand(
   } else if (subcommand === 'publish') {
     return handleAuctionPublish(interaction);
   }
+}
+
+/**
+ * Calculates the next auction time.
+ * Auctions: Mon, Tue, Thu, Sat at 18:40 Pacific (America/Los_Angeles).
+ */
+function getNextAuctionTime(): Date {
+  // Auction days: Mon=1, Tue=2, Thu=4, Sat=6
+  const auctionDays = [1, 2, 4, 6];
+  const auctionHour = 18;
+  const auctionMinute = 40;
+
+  // Get current time in Pacific
+  const now = new Date();
+  const pacificStr = now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+  const pacificNow = new Date(pacificStr);
+
+  // Calculate the offset between UTC and Pacific "now"
+  const utcMs = now.getTime();
+  const pacificMs = pacificNow.getTime();
+  const offsetMs = utcMs - pacificMs;
+
+  // Try today and the next 7 days
+  for (let daysAhead = 0; daysAhead <= 7; daysAhead++) {
+    const candidate = new Date(pacificNow);
+    candidate.setDate(candidate.getDate() + daysAhead);
+    candidate.setHours(auctionHour, auctionMinute, 0, 0);
+
+    const dayOfWeek = candidate.getDay();
+    if (auctionDays.includes(dayOfWeek) && candidate.getTime() > pacificNow.getTime()) {
+      // Convert back to UTC
+      return new Date(candidate.getTime() + offsetMs);
+    }
+  }
+
+  // Fallback (should never reach here)
+  return new Date();
+}
+
+async function handleAuctionTime(
+  interaction: ChatInputCommandInteraction,
+): Promise<void> {
+  const nextAuction = getNextAuctionTime();
+  const unixTimestamp = Math.floor(nextAuction.getTime() / 1000);
+
+  await interaction.reply({
+    content: `🕐 **Next Auction**\n📅 <t:${unixTimestamp}:F> (<t:${unixTimestamp}:R>)\n\n📋 **Schedule:** Monday, Tuesday, Thursday, Saturday at 6:40 PM Pacific`,
+    ephemeral: true,
+  });
 }
 
 export async function handleAuctionSetup(

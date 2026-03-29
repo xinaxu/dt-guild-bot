@@ -72,6 +72,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           case 'cut-line':
           case 'setup':
           case 'store':
+          case 'time':
           case 'help': {
             await handleAuctionCommand(interaction);
             break;
