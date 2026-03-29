@@ -211,6 +211,7 @@ export async function handleAuctionHelp(
 \`/auction sub\` — Open personal subscription dashboard.
 \`/auction queue\` — View live queues.
 \`/auction store\` — View all items.
+\`/auction time\` — View the next auction time.
 \`/auction help\` — Show this help page.
 `;
   } else {
@@ -231,6 +232,7 @@ export async function handleAuctionHelp(
 \`/auction store\` — View all available auction items that you can subscribe to.
 
 *Help:*
+\`/auction time\` — View the next auction time.
 \`/auction help\` — Show this help page.
 `;
   }
