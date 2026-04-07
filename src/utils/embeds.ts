@@ -254,7 +254,7 @@ export function buildAnnouncementEmbed(
     let catText = `**${category}**\n`;
     for (const a of catAssignments) {
       const members = a.assigned
-        .map((m) => `<@${m.userId}>`)
+        .map((m) => `${m.displayName} (<@${m.userId}>)`)
         .join(', ');
       catText += `${getIcon(a.item.icon)} ${a.item.name} (${a.quantity}x) → ${members}\n`;
     }
@@ -317,7 +317,7 @@ export function buildPerPersonEmbed(
       const suffix = i.totalQty > 1 ? `(#${i.copyNumber})` : '';
       return `${getIcon(i.icon)} ${i.name}${suffix}`;
     });
-    lines.push(`<@${userId}>: ${itemStrs.join(', ')}`);
+    lines.push(`${data.displayName} (<@${userId}>): ${itemStrs.join(', ')}`);
   }
 
   // Build embeds with pagination
