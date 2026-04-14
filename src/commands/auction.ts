@@ -26,6 +26,7 @@ import {
   ButtonStyle,
   ChannelSelectMenuBuilder,
   StringSelectMenuBuilder,
+  UserSelectMenuBuilder,
   type MessageActionRowComponentBuilder,
 } from 'discord.js';
 
@@ -536,10 +537,125 @@ export async function handlePublishDone(
     await interaction.reply({ content: '❌ No items selected.', ephemeral: true });
     return;
   }
-  
-  console.log(`[Publish] Done clicked. Finalizing assignments for ${state.selectedItems.length} items. StateKey: ${stateKey}`);
 
+  console.log(`[Publish] Done clicked. Showing skip member selection. StateKey: ${stateKey}`);
+
+  // Store item selections for the skip step
+  const skipStateKey = `skip_${stateKey}`;
+  pendingSkipStates.set(skipStateKey, {
+    publishStateKey: stateKey,
+    selectedItems: [...state.selectedItems],
+    skippedUserIds: [],
+    skippedDisplayNames: new Map(),
+    channelId: interaction.channelId || undefined,
+  });
+
+  const selectRow = new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
+    new UserSelectMenuBuilder()
+      .setCustomId(`publish_skip_select_${skipStateKey}`)
+      .setPlaceholder('Select members who missed Guild War...')
+      .setMinValues(1)
+      .setMaxValues(25),
+  );
+
+  const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`publish_skip_done_${skipStateKey}`)
+      .setLabel('⏭️ Skip Selected & Continue')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`publish_skip_none_${skipStateKey}`)
+      .setLabel('✅ No Skips, Continue')
+      .setStyle(ButtonStyle.Secondary),
+  );
+
+  await interaction.update({
+    content: '⚔️ **Guild War Skip**\nSelect members who did **not** participate in Guild War. They will be skipped for this auction\'s assignments.\n\n*(Optional — click "No Skips" to continue without skipping anyone)*',
+    embeds: [],
+    components: [selectRow, buttonRow],
+  });
+}
+
+// ─── Skip state for guild war ───────────────────────────────────────────────
+
+interface PendingSkipState {
+  publishStateKey: string;
+  selectedItems: { itemName: string; quantity: number }[];
+  skippedUserIds: string[];
+  skippedDisplayNames: Map<string, string>; // userId → displayName
+  channelId?: string;
+}
+
+const pendingSkipStates = new Map<string, PendingSkipState>();
+
+/**
+ * Handles the user select menu for skip members.
+ */
+export async function handlePublishSkipSelect(
+  interaction: import('discord.js').UserSelectMenuInteraction,
+  skipStateKey: string,
+): Promise<void> {
+  const state = pendingSkipStates.get(skipStateKey);
+  if (!state) {
+    await interaction.reply({ content: '❌ Session expired. Run `/auction publish` again.', ephemeral: true });
+    return;
+  }
+  state.skippedUserIds = [...interaction.values];
+  // Capture display names from the resolved users
+  state.skippedDisplayNames.clear();
+  for (const [userId, user] of interaction.users) {
+    state.skippedDisplayNames.set(userId, user.displayName ?? user.username);
+  }
+  await interaction.deferUpdate();
+}
+
+/**
+ * Continues publish with skipped members.
+ */
+export async function handlePublishSkipDone(
+  interaction: import('discord.js').ButtonInteraction,
+  skipStateKey: string,
+): Promise<void> {
+  const state = pendingSkipStates.get(skipStateKey);
+  if (!state) {
+    await interaction.reply({ content: '❌ Session expired. Run `/auction publish` again.', ephemeral: true });
+    return;
+  }
+
+  await calculateAndShowPreview(interaction, state);
+  pendingSkipStates.delete(skipStateKey);
+  publishStates.delete(state.publishStateKey);
+}
+
+/**
+ * Continues publish with no skips.
+ */
+export async function handlePublishSkipNone(
+  interaction: import('discord.js').ButtonInteraction,
+  skipStateKey: string,
+): Promise<void> {
+  const state = pendingSkipStates.get(skipStateKey);
+  if (!state) {
+    await interaction.reply({ content: '❌ Session expired. Run `/auction publish` again.', ephemeral: true });
+    return;
+  }
+
+  state.skippedUserIds = [];
+  state.skippedDisplayNames.clear();
+  await calculateAndShowPreview(interaction, state);
+  pendingSkipStates.delete(skipStateKey);
+  publishStates.delete(state.publishStateKey);
+}
+
+/**
+ * Calculates assignments (filtering skipped users) and shows the preview.
+ */
+async function calculateAndShowPreview(
+  interaction: import('discord.js').ButtonInteraction,
+  state: PendingSkipState,
+): Promise<void> {
   const allItems = getItems();
+  const skipSet = new Set(state.skippedUserIds);
   const assignments: {
     item: ItemInfo;
     quantity: number;
@@ -551,43 +667,50 @@ export async function handlePublishDone(
     const item = allItems.find((i) => i.name === itemName);
     if (!item) continue;
     const subs = await getSubscriptions(interaction.guildId!, item.name);
-    
+    const filteredSubs = subs.filter((s) => !skipSet.has(s.userId));
+
     const assigned: { userId: string; displayName: string; position: number }[] = [];
     let unassignedQty = 0;
 
-    if (subs.length === 0) {
+    if (filteredSubs.length === 0) {
       unassignedQty = quantity;
     } else {
       for (let i = 0; i < quantity; i++) {
-        const sub = subs[i % subs.length];
+        const sub = filteredSubs[i % filteredSubs.length];
         assigned.push({
           userId: sub.userId,
           displayName: sub.displayName,
-          position: (i % subs.length) + 1,
+          position: (i % filteredSubs.length) + 1,
         });
       }
     }
-    
+
     assignments.push({ item, quantity, assigned, unassignedQty });
   }
 
-  const embeds = buildAssignmentPreviewEmbed(assignments);
+  // Build skipped members list for display
+  const skippedMembers = state.skippedUserIds.map((id) => ({
+    userId: id,
+    displayName: state.skippedDisplayNames.get(id) || id,
+  }));
+
+  const embeds = buildAssignmentPreviewEmbed(assignments, skippedMembers);
 
   const auctionStateKey = `auction_${Date.now()}`;
   pendingAuctions.set(auctionStateKey, {
     assignments,
     selectedItems: assignments.map((a) => ({ item: a.item, quantity: a.quantity })),
-    channelId: interaction.channelId || undefined,
+    channelId: state.channelId,
+    skippedUserIds: state.skippedUserIds,
+    skippedDisplayNames: Object.fromEntries(state.skippedDisplayNames),
   });
-
-  publishStates.delete(stateKey);
 
   const channelRow = new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(
     new ChannelSelectMenuBuilder()
       .setCustomId(`auction_channel_${auctionStateKey}`)
       .setPlaceholder('Select announcement channel...')
       .setChannelTypes(ChannelType.GuildText)
-      .setDefaultChannels(interaction.channelId ? [interaction.channelId] : []),
+      .setDefaultChannels(state.channelId ? [state.channelId] : []),
   );
 
   const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -602,6 +725,7 @@ export async function handlePublishDone(
   );
 
   await interaction.update({
+    content: null,
     embeds,
     components: [channelRow, buttonRow],
   });
@@ -617,6 +741,8 @@ interface PendingAuction {
   }[];
   selectedItems: { item: ItemInfo; quantity: number }[];
   channelId?: string;
+  skippedUserIds: string[];
+  skippedDisplayNames: Record<string, string>;
 }
 
 const pendingAuctions = new Map<string, PendingAuction>();
@@ -652,21 +778,23 @@ export async function handleAuctionConfirm(
   const warnings: string[] = [];
 
   // Re-calculate assignments from live queue state (fixes race condition)
+  const skipSet = new Set(pending.skippedUserIds);
   const liveAssignments: typeof pending.assignments = [];
   for (const { item, quantity } of pending.selectedItems) {
     const subs = await getSubscriptions(interaction.guildId!, item.name);
+    const filteredSubs = subs.filter((s) => !skipSet.has(s.userId));
     const assigned: { userId: string; displayName: string; position: number }[] = [];
     let unassignedQty = 0;
 
-    if (subs.length === 0) {
+    if (filteredSubs.length === 0) {
       unassignedQty = quantity;
     } else {
       for (let i = 0; i < quantity; i++) {
-        const sub = subs[i % subs.length];
+        const sub = filteredSubs[i % filteredSubs.length];
         assigned.push({
           userId: sub.userId,
           displayName: sub.displayName,
-          position: (i % subs.length) + 1,
+          position: (i % filteredSubs.length) + 1,
         });
       }
     }
@@ -699,6 +827,12 @@ export async function handleAuctionConfirm(
     }
   }
 
+  // Build skipped members list for embed display
+  const skippedMembers = pending.skippedUserIds.map((id) => ({
+    userId: id,
+    displayName: pending.skippedDisplayNames[id] || id,
+  }));
+
   // Post announcement
   const channelId = pending.channelId;
   try {
@@ -709,6 +843,7 @@ export async function handleAuctionConfirm(
         const announcementEmbeds = buildAnnouncementEmbed(
           liveAssignments.filter((a) => a.assigned.length > 0),
           today,
+          skippedMembers,
         );
         const chunks = chunkEmbeds(announcementEmbeds);
         for (const chunk of chunks) {

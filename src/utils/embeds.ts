@@ -176,6 +176,7 @@ export function buildAssignmentPreviewEmbed(
     assigned: { userId: string; displayName: string; position: number }[];
     unassignedQty: number;
   }[],
+  skippedMembers: { userId: string; displayName: string }[] = [],
 ): EmbedBuilder[] {
   const grouped = new Map<string, typeof assignments>();
   for (const a of assignments) {
@@ -223,6 +224,19 @@ export function buildAssignmentPreviewEmbed(
   }
 
   embeds.push(currentEmbed);
+
+  // Add skipped members section if any
+  if (skippedMembers.length > 0) {
+    const skippedText = skippedMembers
+      .map((m) => `${m.displayName} (<@${m.userId}>)`)
+      .join(', ');
+    const skippedEmbed = new EmbedBuilder()
+      .setTitle('⚔️ Skipped — Did Not Do Guild War')
+      .setColor(0xed4245)
+      .setDescription(skippedText);
+    embeds.push(skippedEmbed);
+  }
+
   return embeds;
 }
 
@@ -236,6 +250,7 @@ export function buildAnnouncementEmbed(
     assigned: { userId: string; displayName: string }[];
   }[],
   date: string,
+  skippedMembers: { userId: string; displayName: string }[] = [],
 ): EmbedBuilder[] {
   const grouped = new Map<string, typeof assignments>();
   for (const a of assignments) {
@@ -274,6 +289,19 @@ export function buildAnnouncementEmbed(
   }
 
   embeds.push(currentEmbed);
+
+  // Add skipped members section if any
+  if (skippedMembers.length > 0) {
+    const skippedText = skippedMembers
+      .map((m) => `${m.displayName} (<@${m.userId}>)`)
+      .join(', ');
+    const skippedEmbed = new EmbedBuilder()
+      .setTitle('⚔️ Skipped — Did Not Do Guild War')
+      .setColor(0xed4245)
+      .setDescription(skippedText);
+    embeds.push(skippedEmbed);
+  }
+
   return embeds;
 }
 

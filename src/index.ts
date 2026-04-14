@@ -22,6 +22,9 @@ import {
   handlePublishAddItem,
   handlePublishRemoveItem,
   handlePublishDone,
+  handlePublishSkipSelect,
+  handlePublishSkipDone,
+  handlePublishSkipNone,
 } from './commands/auction.js';
 
 import { handleRemoveMemberCommand, handleRemoveMemberSelect } from './commands/removemember.js';
@@ -102,6 +105,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
       } else if (interaction.customId.startsWith('publish_done_')) {
         const stateKey = interaction.customId.replace('publish_done_', '');
         await handlePublishDone(interaction, stateKey);
+      } else if (interaction.customId.startsWith('publish_skip_done_')) {
+        const skipStateKey = interaction.customId.replace('publish_skip_done_', '');
+        await handlePublishSkipDone(interaction, skipStateKey);
+      } else if (interaction.customId.startsWith('publish_skip_none_')) {
+        const skipStateKey = interaction.customId.replace('publish_skip_none_', '');
+        await handlePublishSkipNone(interaction, skipStateKey);
       } else if (interaction.customId.startsWith('sub_back_')) {
         await handleSubBackToCategories(interaction);
       } else if (interaction.customId.startsWith('sub_cat_done_')) {
@@ -177,6 +186,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await handleRemoveMemberSelect(interaction);
       } else if (interaction.customId === 'sub_user_select') {
         await handleSubUserSelect(interaction);
+      } else if (interaction.customId.startsWith('publish_skip_select_')) {
+        const skipStateKey = interaction.customId.replace('publish_skip_select_', '');
+        await handlePublishSkipSelect(interaction, skipStateKey);
       }
 
     // ─── Role Select Menus ───
