@@ -624,7 +624,6 @@ export async function handlePublishSkipDone(
 
   await calculateAndShowPreview(interaction, state);
   pendingSkipStates.delete(skipStateKey);
-  publishStates.delete(state.publishStateKey);
 }
 
 /**
@@ -644,7 +643,6 @@ export async function handlePublishSkipNone(
   state.skippedDisplayNames.clear();
   await calculateAndShowPreview(interaction, state);
   pendingSkipStates.delete(skipStateKey);
-  publishStates.delete(state.publishStateKey);
 }
 
 /**
@@ -703,6 +701,7 @@ async function calculateAndShowPreview(
     channelId: state.channelId,
     skippedUserIds: state.skippedUserIds,
     skippedDisplayNames: Object.fromEntries(state.skippedDisplayNames),
+    publishStateKey: state.publishStateKey,
   });
 
   const channelRow = new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(
@@ -715,11 +714,15 @@ async function calculateAndShowPreview(
 
   const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
+      .setCustomId(`publish_back_${auctionStateKey}`)
+      .setLabel('← Back')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
       .setCustomId(`auction_confirm_${auctionStateKey}`)
       .setLabel('✅ Publish & Rotate')
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
-      .setCustomId('auction_cancel')
+      .setCustomId(`auction_cancel_cleanup_${auctionStateKey}`)
       .setLabel('❌ Cancel')
       .setStyle(ButtonStyle.Danger),
   );
@@ -743,9 +746,49 @@ interface PendingAuction {
   channelId?: string;
   skippedUserIds: string[];
   skippedDisplayNames: Record<string, string>;
+  publishStateKey: string;
 }
 
 const pendingAuctions = new Map<string, PendingAuction>();
+
+/**
+ * Handles going back from preview to item selection.
+ */
+export async function handlePublishBack(
+  interaction: import('discord.js').ButtonInteraction,
+  auctionStateKey: string,
+): Promise<void> {
+  const pending = pendingAuctions.get(auctionStateKey);
+  if (!pending) {
+    await interaction.update({ content: '❌ Session expired. Run `/auction publish` again.', embeds: [], components: [] });
+    return;
+  }
+
+  const state = publishStates.get(pending.publishStateKey);
+  if (!state) {
+    await interaction.update({ content: '❌ Session expired. Run `/auction publish` again.', embeds: [], components: [] });
+    return;
+  }
+
+  pendingAuctions.delete(auctionStateKey);
+  const ui = buildPublishUI(state, pending.publishStateKey);
+  await interaction.update(ui);
+}
+
+/**
+ * Handles cancel from preview (also cleans up publishState).
+ */
+export async function handlePublishCancelCleanup(
+  interaction: import('discord.js').ButtonInteraction,
+  auctionStateKey: string,
+): Promise<void> {
+  const pending = pendingAuctions.get(auctionStateKey);
+  if (pending) {
+    publishStates.delete(pending.publishStateKey);
+    pendingAuctions.delete(auctionStateKey);
+  }
+  await interaction.update({ content: 'Cancelled.', embeds: [], components: [] });
+}
 
 // ─── Auction Handlers ───────────────────────────────────────────────────────
 
@@ -866,6 +909,7 @@ export async function handleAuctionConfirm(
   }
 
   // Clean up state
+  publishStates.delete(pending.publishStateKey);
   pendingAuctions.delete(stateKey);
 
   const warningText = warnings.length > 0 ? `\n\n${warnings.join('\n')}` : '';

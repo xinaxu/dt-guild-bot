@@ -25,6 +25,8 @@ import {
   handlePublishSkipSelect,
   handlePublishSkipDone,
   handlePublishSkipNone,
+  handlePublishBack,
+  handlePublishCancelCleanup,
 } from './commands/auction.js';
 
 import { handleRemoveMemberCommand, handleRemoveMemberSelect } from './commands/removemember.js';
@@ -133,6 +135,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await handleCutLineMoveUser(interaction, 'down');
       } else if (interaction.customId === 'auction_cancel') {
         await interaction.update({ content: 'Cancelled.', embeds: [], components: [] });
+      } else if (interaction.customId.startsWith('auction_cancel_cleanup_')) {
+        const stateKey = interaction.customId.replace('auction_cancel_cleanup_', '');
+        await handlePublishCancelCleanup(interaction, stateKey);
+      } else if (interaction.customId.startsWith('publish_back_')) {
+        const stateKey = interaction.customId.replace('publish_back_', '');
+        await handlePublishBack(interaction, stateKey);
       } else {
         await handleButtonInteraction(interaction);
       }
